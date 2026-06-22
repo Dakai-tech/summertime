@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>暑期闯关大作战</title>
+    <style>
+        /* 基础重置与字体设置 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background-color: #f4f7f6; color: #333; }
+        
+        /* 顶部导航与计分板 */
+        header { background-color: #4A90E2; color: white; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #score-board { color: #FFD700; font-size: 28px; margin-left: 15px; }
+
+        /* 标签页导航 */
+        nav { display: flex; justify-content: center; background-color: #fff; border-bottom: 2px solid #ddd; }
+        .tab-btn { flex: 1; max-width: 200px; padding: 15px 0; font-size: 20px; border: none; background: none; cursor: pointer; color: #666; font-weight: bold; }
+        .tab-btn.active { color: #4A90E2; border-bottom: 4px solid #4A90E2; }
+
+        /* 主体内容区 */
+        main { padding: 30px 20px; max-width: 800px; margin: 0 auto; }
+        .subject-section { display: none; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
+        .subject-section.active { display: block; }
+
+        /* 模块标题与题目卡片 */
+        h2 { margin-bottom: 25px; color: #333; font-size: 26px; border-bottom: 2px dashed #eee; padding-bottom: 10px;}
+        .card { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        
+        /* 交互元素样式 */
+        .question-text { font-size: 22px; margin-bottom: 20px; font-weight: bold; color: #2c3e50; line-height: 1.5; text-align: left; }
+        .pinyin-text { font-size: 28px; margin-bottom: 20px; color: #e67e22; font-family: "Comic Sans MS", cursive, sans-serif; letter-spacing: 2px; }
+        input[type="text"] { width: 80%; padding: 15px; font-size: 22px; border: 2px solid #ccc; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        input[type="text"]:focus { border-color: #4A90E2; outline: none; }
+        
+        button { background-color: #4FC3F7; color: white; border: none; padding: 15px 30px; font-size: 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 5px; transition: transform 0.1s;}
+        button:active { transform: translateY(2px); }
+        button.option-btn { background-color: #f1f2f6; color: #333; display: block; width: 100%; margin: 10px 0; text-align: left; border: 2px solid #ddd; padding: 15px 20px;}
+        button.option-btn:hover { border-color: #4A90E2; background-color: #eaf4fc; }
+
+        /* 状态与解析反馈 */
+        .feedback { font-size: 20px; font-weight: bold; min-height: 30px; margin-top: 15px; }
+        .correct { color: #2ecc71; }
+        .incorrect { color: #e74c3c; }
+        .analysis { display: none; background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 18px; text-align: left; border-left: 5px solid #ffeeba; }
+        .analysis.show { display: block; }
+        
+        .error-badge { display: inline-block; background-color: #e74c3c; color: white; font-size: 14px; padding: 3px 8px; border-radius: 12px; vertical-align: top; margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        🌟 暑期闯关大作战 🌟 
+        <span id="score-board">⭐️ <span id="score">0</span></span>
+    </header>
+
+    <nav>
+        <button class="tab-btn" onclick="switchTab('chinese')">语文</button>
+        <button class="tab-btn active" onclick="switchTab('math')">数学</button>
+        <button class="tab-btn" onclick="switchTab('english')">英语</button>
+    </nav>
+
+    <main>
+        <section id="chinese" class="subject-section">
+            <h2>✍️ 词语默写 (四上预习)</h2>
+            <div class="card" id="zh-card">
+                <div class="pinyin-text" id="zh-pinyin">加载中...</div>
+                <input type="text" id="zh-input" placeholder="利用拼音输入汉字" autocomplete="off" autocorrect="off">
+                <br>
+                <button onclick="checkZh()">提交答案</button>
+                <button style="background-color: #95a5a6;" onclick="nextZh()">下一题</button>
+                <div id="zh-feedback" class="feedback"></div>
+            </div>
+        </section>
+
+        <section id="math" class="subject-section active">
+            <h2>📐 数学概念辨析 <span id="error-count" style="display:none;" class="error-badge">错题本: 0</span></h2>
+            <div class="card" id="math-card">
+                <div class="question-text" id="math-question">加载中...</div>
+                <div id="math-options"></div>
+                <div id="math-feedback" class="feedback"></div>
+                <div id="math-analysis" class="analysis"></div>
+                
+                <div style="margin-top: 20px;">
+                    <button style="background-color: #95a5a6;" onclick="nextMath()">下一题</button>
+                    <button id="btn-review" style="background-color: #e67e22; display: none;" onclick="startErrorReview()">复习错题</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="english" class="subject-section">
+            <h2>📝 单词拼写</h2>
+            <div class="card" id="word-card">
+                <div class="question-text" id="word-cn">加载中...</div>
+                <input type="text" id="word-input" placeholder="输入英文单词" autocomplete="off" autocorrect="off" autocapitalize="none">
+                <br>
+                <button onclick="checkWord()">提交答案</button>
+                <button style="background-color: #95a5a6;" onclick="nextWord()">下一题</button>
+                <div id="word-feedback" class="feedback"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- 全局数据与状态 ---
+        let score = 0;
+
+        // 语文词库
+        const chineseDb = [
+            { pinyin: "cháo shuǐ", word: "潮水" },
+            { pinyin: "kuān kuò", word: "宽阔" },
+            { pinyin: "pú tao", word: "葡萄" },
+            { pinyin: "yán jiū", word: "研究" },
+            { pinyin: "zhú jiàn", word: "逐渐" }
+        ];
+
+        // 英语词库
+        const wordsDb = [
+            { cn: "飞机", en: "aeroplane" },
+            { cn: "月球；月亮", en: "moon" },
+            { cn: "饿的", en: "hungry" },
+            { cn: "聪明的", en: "clever" },
+            { cn: "三角形", en: "triangle" }
+        ];
+
+        // 数学题库 (取自期末复习卷)
+        const mathDb = [
+            { 
+                id: 1, 
+                q: "在计算“18 × 39”时，下面哪种计算方法是不正确的？", 
+                options: ["A. 18 × 30 + 18 × 9", "B. 39 × 6 × 3", "C. 18 × 40 - 18 × 1", "D. 18 × 30 × 9"], 
+                ans: 3, 
+                analysis: "解析：D选项等于18乘以270了，违背了乘法分配律。正确的拆分应是加减关系，如选项A和C。" 
+            },
+            { 
+                id: 2, 
+                q: "一个正方形的边长为4厘米，它的周长与面积（ ）。", 
+                options: ["A. 周长大", "B. 面积大", "C. 一样大", "D. 无法比较"], 
+                ans: 3, 
+                analysis: "解析：这是一个经典的易错题！周长的单位是厘米（长度），面积的单位是平方厘米（面积）。意义完全不同，所以绝对不能直接比较大小。" 
+            },
+            { 
+                id: 3, 
+                q: "妈妈准备了不同的3件上衣、3条裤子和2双鞋子。如果选一件上衣、一条裤子和一双鞋，共有（ ）种不同的搭配方式。", 
+                options: ["A. 8种", "B. 11种", "C. 18种"], 
+                ans: 2, 
+                analysis: "解析：运用乘法原理，3件上衣 × 3条裤子 × 2双鞋子 = 18种搭配方式。" 
+            },
+            { 
+                id: 4, 
+                q: "算式 □ ÷ 12 = ○ …… △ 中，余数△最大是（ ）。", 
+                options: ["A. 11", "B. 12", "C. 13"], 
+                ans: 0, 
+                analysis: "解析：除法运算中，余数必须小于除数。这道题的除数是12，所以最大的余数只能是11。" 
+            }
+        ];
+
+        let currentZhIndex = 0;
+        let currentWordIndex = 0;
+        
+        // 数学模块控制变量
+        let currentMathIndex = 0;
+        let mathErrors = []; // 错题本数组
+        let isReviewMode = false; // 是否处于复习错题模式
+        let reviewList = []; // 当前复习的题目列表
+
+        // --- 页面交互逻辑 ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.subject-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function addScore(points) {
+            score += points;
+            document.getElementById('score').innerText = score;
+        }
+
+        // --- 语文与英语基础加载逻辑 ---
+        function loadZh() {
+            const zhObj = chineseDb[currentZhIndex];
+            document.getElementById('zh-pinyin').innerText = zhObj.pinyin;
+            document.getElementById('zh-input').value = '';
+            document.getElementById('zh-feedback').innerText = '';
+            document.getElementById('zh-feedback').className = 'feedback';
+        }
+
+        function checkZh() {
+            const userInput = document.getElementById('zh-input').value.trim();
+            const correctWord = chineseDb[currentZhIndex].word;
+            const feedbackEl = document.getElementById('zh-feedback');
+            if(userInput === correctWord) {
+                feedbackEl.innerText = "🎉 书写正确！";
+                feedbackEl.className = 'feedback correct';
+                addScore(2);
+                setTimeout(nextZh, 1000);
+            } else {
+                feedbackEl.innerText = `❌ 正确答案是: ${correctWord}`;
+                feedbackEl.className = 'feedback incorrect';
+            }
+        }
+
+        function nextZh() {
+            currentZhIndex = (currentZhIndex + 1) % chineseDb.length;
+            loadZh();
+        }
+
+        function loadWord() {
+            const wordObj = wordsDb[currentWordIndex];
+            document.getElementById('word-cn').innerText = wordObj.cn;
+            document.getElementById('word-input').value = '';
+            document.getElementById('word-feedback').innerText = '';
+            document.getElementById('word-feedback').className = 'feedback';
+        }
+
+        function checkWord() {
+            const userInput = document.getElementById('word-input').value.trim().toLowerCase();
+            const correctWord = wordsDb[currentWordIndex].en.toLowerCase();
+            const feedbackEl = document.getElementById('word-feedback');
+            if(userInput === correctWord) {
+                feedbackEl.innerText = "🎉 拼写正确！";
+                feedbackEl.className = 'feedback correct';
+                addScore(2);
+                setTimeout(nextWord, 1000);
+            } else {
+                feedbackEl.innerText = `❌ 正确答案是: ${correctWord}`;
+                feedbackEl.className = 'feedback incorrect';
+            }
+        }
+
+        function nextWord() {
+            currentWordIndex = (currentWordIndex + 1) % wordsDb.length;
+            loadWord();
+        }
+
+        // --- 数学模块与错题本核心逻辑 ---
+        function loadMath() {
+            // 根据模式获取当前题目
+            const targetDb = isReviewMode ? reviewList : mathDb;
+            if (targetDb.length === 0) return; // 题库为空时的保护
+
+            const mathObj = targetDb[currentMathIndex];
+            
+            // 界面重置
+            document.getElementById('math-question').innerText = (isReviewMode ? "【错题复习】" : "") + mathObj.q;
+            document.getElementById('math-feedback').innerText = '';
+            document.getElementById('math-analysis').classList.remove('show');
+            
+            const optionsContainer = document.getElementById('math-options');
+            optionsContainer.innerHTML = '';
+            
+            // 渲染选项按钮
+            mathObj.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                // 点击检查答案，并禁用其他选项防二次点击
+                btn.onclick = () => {
+                    checkMath(index, mathObj);
+                    Array.from(optionsContainer.children).forEach(b => b.disabled = true);
+                };
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkMath(selectedIndex, currentProblem) {
+            const feedbackEl = document.getElementById('math-feedback');
+            const analysisEl = document.getElementById('math-analysis');
+
+            if(selectedIndex === currentProblem.ans) {
+                feedbackEl.innerText = "🎉 回答正确！思维很清晰哦。";
+                feedbackEl.className = 'feedback correct';
+                addScore(3);
+                
+                // 如果是复习模式下答对，从错题本移除该题
+                if (isReviewMode) {
+                    mathErrors = mathErrors.filter(item => item.id !== currentProblem.id);
+                    updateErrorBadge();
+                }
+            } else {
+                feedbackEl.innerText = "❌ 哎呀，掉进陷阱里啦。看看解析吧！";
+                feedbackEl.className = 'feedback incorrect';
+                
+                // 答错展示解析
+                analysisEl.innerText = currentProblem.analysis;
+                analysisEl.classList.add('show');
+                
+                // 记录到错题本 (防止重复添加)
+                if (!mathErrors.some(item => item.id === currentProblem.id)) {
+                    mathErrors.push(currentProblem);
+                    updateErrorBadge();
+                }
+            }
+        }
+
+        function nextMath() {
+            const targetDb = isReviewMode ? reviewList : mathDb;
+            currentMathIndex = (currentMathIndex + 1) % targetDb.length;
+            
+            // 如果复习模式下所有错题都被移除了，自动退出复习模式
+            if (isReviewMode && mathErrors.length === 0) {
+                alert("太棒了！所有数学错题已被消灭！回到常规挑战。");
+                isReviewMode = false;
+                currentMathIndex = 0;
+            } else if (isReviewMode) {
+                // 如果错题本数量发生改变，重置 reviewList
+                reviewList = [...mathErrors]; 
+                if(currentMathIndex >= reviewList.length) currentMathIndex = 0;
+            }
+
+            loadMath();
+        }
+
+        // 启动错题复习模式
+        function startErrorReview() {
+            if (mathErrors.length === 0) return;
+            isReviewMode = true;
+            reviewList = [...mathErrors]; // 拷贝当前错题
+            currentMathIndex = 0;
+            loadMath();
+        }
+
+        // 更新错题提示角标
+        function updateErrorBadge() {
+            const badge = document.getElementById('error-count');
+            const btnReview = document.getElementById('btn-review');
+            if (mathErrors.length > 0) {
+                badge.style.display = 'inline-block';
+                badge.innerText = `错题本: ${mathErrors.length}`;
+                btnReview.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+                btnReview.style.display = 'none';
+            }
+        }
+
+        // --- 初始化启动 ---
+        window.onload = function() {
+            loadZh();
+            loadWord();
+            loadMath();
+            
+            // 绑定回车键
+            document.getElementById('zh-input').addEventListener('keypress', e => { if (e.key === 'Enter') checkZh(); });
+            document.getElementById('word-input').addEventListener('keypress', e => { if (e.key === 'Enter') checkWord(); });
+        };
+    </script>
+</body>
+</html>
