@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>暑期闯关大作战</title>
+    <style>
+        /* 基础重置与字体设置 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background-color: #f4f7f6; color: #333; }
+        
+        /* 顶部导航与计分板 */
+        header { background-color: #4A90E2; color: white; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #score-board { color: #FFD700; font-size: 28px; margin-left: 15px; }
+
+        /* 标签页导航 (适合手指点击的大按钮) */
+        nav { display: flex; justify-content: center; background-color: #fff; border-bottom: 2px solid #ddd; }
+        .tab-btn { flex: 1; max-width: 200px; padding: 15px 0; font-size: 20px; border: none; background: none; cursor: pointer; color: #666; font-weight: bold; }
+        .tab-btn.active { color: #4A90E2; border-bottom: 4px solid #4A90E2; }
+
+        /* 主体内容区 */
+        main { padding: 30px 20px; max-width: 800px; margin: 0 auto; }
+        .subject-section { display: none; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
+        .subject-section.active { display: block; }
+
+        /* 模块标题与题目卡片 */
+        h2 { margin-bottom: 25px; color: #333; font-size: 26px; border-bottom: 2px dashed #eee; padding-bottom: 10px;}
+        .card { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        
+        /* 交互元素样式 (大尺寸，防误触) */
+        .question-text { font-size: 24px; margin-bottom: 20px; font-weight: bold; color: #2c3e50; }
+        input[type="text"] { width: 80%; padding: 15px; font-size: 22px; border: 2px solid #ccc; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        input[type="text"]:focus { border-color: #4A90E2; outline: none; }
+        button { background-color: #4FC3F7; color: white; border: none; padding: 15px 40px; font-size: 22px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; margin: 5px;}
+        button:active { transform: translateY(2px); }
+        button.option-btn { background-color: #f1f2f6; color: #333; display: block; width: 100%; margin: 10px 0; text-align: left; border: 2px solid #ddd; }
+        button.option-btn:hover { border-color: #4A90E2; background-color: #eaf4fc; }
+
+        /* 状态反馈文字 */
+        .feedback { font-size: 20px; font-weight: bold; min-height: 30px; margin-top: 10px; }
+        .correct { color: #2ecc71; }
+        .incorrect { color: #e74c3c; }
+
+        /* 隐藏功能占位 */
+        .coming-soon { color: #999; font-size: 18px; padding: 40px 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        🌟 暑期闯关大作战 🌟 
+        <span id="score-board">⭐️ <span id="score">0</span></span>
+    </header>
+
+    <nav>
+        <button class="tab-btn" onclick="switchTab('chinese')">语文</button>
+        <button class="tab-btn" onclick="switchTab('math')">数学</button>
+        <button class="tab-btn active" onclick="switchTab('english')">英语</button>
+    </nav>
+
+    <main>
+        <section id="chinese" class="subject-section">
+            <h2>语文闯关</h2>
+            <div class="coming-soon">🛠 词语默写、病句修改等功能建设中，敬请期待...</div>
+        </section>
+
+        <section id="math" class="subject-section">
+            <h2>数学探险</h2>
+            <div class="coming-soon">🛠 核心概念答题卡建设中，敬请期待...</div>
+        </section>
+
+        <section id="english" class="subject-section active">
+            
+            <h2>📝 单词拼写</h2>
+            <div class="card" id="word-card">
+                <div class="question-text" id="word-cn">加载中...</div>
+                <input type="text" id="word-input" placeholder="输入英文单词" autocomplete="off" autocorrect="off" autocapitalize="none">
+                <br>
+                <button onclick="checkWord()">提交答案</button>
+                <button style="background-color: #95a5a6;" onclick="nextWord()">下一题</button>
+                <div id="word-feedback" class="feedback"></div>
+            </div>
+
+            <h2>🎯 语法与辨音</h2>
+            <div class="card" id="quiz-card">
+                <div class="question-text" id="quiz-question">加载中...</div>
+                <div id="quiz-options"></div>
+                <button style="background-color: #95a5a6; margin-top: 15px;" onclick="nextQuiz()">换一题</button>
+                <div id="quiz-feedback" class="feedback"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // --- 1. 全局数据与状态 ---
+        let score = 0;
+
+        // 英语单词词库 (取自三下单词默写表)
+        const wordsDb = [
+            { cn: "飞机", en: "aeroplane" },
+            { cn: "月球；月亮", en: "moon" },
+            { cn: "饿的", en: "hungry" },
+            { cn: "聪明的", en: "clever" },
+            { cn: "夏天", en: "summer" },
+            { cn: "强壮的", en: "strong" },
+            { cn: "三角形", en: "triangle" },
+            { cn: "长方形", en: "rectangle" }
+        ];
+
+        // 英语选择题库 (取自校内辨音100道及期末复习总结)
+        const quizDb = [
+            {
+                q: "找出划线部分发音不同的选项：el[e]ven,  [li]brary,  [a]ll",
+                options: ["A. eleven", "B. library", "C. all"],
+                ans: 2 // 对应数组索引，C是正确答案
+            },
+            {
+                q: "找出划线部分发音不同的选项：[h]orse,  [h]ave,  t[h]ank",
+                options: ["A. horse", "B. have", "C. thank"],
+                ans: 2
+            },
+            {
+                q: "反义词匹配：The opposite of 'rough' is ___.",
+                options: ["A. hard", "B. smooth", "C. soft"],
+                ans: 1
+            },
+            {
+                q: "冠词用法：___ umbrella",
+                options: ["A. a", "B. an", "C. the"],
+                ans: 1
+            }
+        ];
+
+        let currentWordIndex = 0;
+        let currentQuizIndex = 0;
+
+        // --- 2. 页面交互逻辑 ---
+
+        // 切换标签页
+        function switchTab(tabId) {
+            document.querySelectorAll('.subject-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // --- 3. 英语单词模块逻辑 ---
+        function loadWord() {
+            const wordObj = wordsDb[currentWordIndex];
+            document.getElementById('word-cn').innerText = wordObj.cn;
+            document.getElementById('word-input').value = '';
+            document.getElementById('word-input').focus();
+            document.getElementById('word-feedback').innerText = '';
+            document.getElementById('word-feedback').className = 'feedback';
+        }
+
+        function checkWord() {
+            const userInput = document.getElementById('word-input').value.trim().toLowerCase();
+            const correctWord = wordsDb[currentWordIndex].en.toLowerCase();
+            const feedbackEl = document.getElementById('word-feedback');
+
+            if(userInput === correctWord) {
+                feedbackEl.innerText = "🎉 拼写正确！太棒了！";
+                feedbackEl.className = 'feedback correct';
+                addScore(2);
+                setTimeout(nextWord, 1500); // 1.5秒后自动跳下一题
+            } else {
+                feedbackEl.innerText = `❌ 哎呀，不对哦。正确答案是: ${correctWord}`;
+                feedbackEl.className = 'feedback incorrect';
+            }
+        }
+
+        function nextWord() {
+            currentWordIndex = (currentWordIndex + 1) % wordsDb.length;
+            loadWord();
+        }
+
+        // --- 4. 英语选择题模块逻辑 ---
+        function loadQuiz() {
+            const quizObj = quizDb[currentQuizIndex];
+            document.getElementById('quiz-question').innerText = quizObj.q;
+            document.getElementById('quiz-feedback').innerText = '';
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = ''; // 清空旧选项
+            
+            quizObj.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkQuiz(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkQuiz(selectedIndex) {
+            const correctIndex = quizDb[currentQuizIndex].ans;
+            const feedbackEl = document.getElementById('quiz-feedback');
+
+            if(selectedIndex === correctIndex) {
+                feedbackEl.innerText = "🎉 回答正确！";
+                feedbackEl.className = 'feedback correct';
+                addScore(1);
+                setTimeout(nextQuiz, 1000); // 1秒后自动跳下一题
+            } else {
+                feedbackEl.innerText = "❌ 再想想看，选错了哦。";
+                feedbackEl.className = 'feedback incorrect';
+            }
+        }
+
+        function nextQuiz() {
+            currentQuizIndex = (currentQuizIndex + 1) % quizDb.length;
+            loadQuiz();
+        }
+
+        // --- 5. 积分系统 ---
+        function addScore(points) {
+            score += points;
+            document.getElementById('score').innerText = score;
+        }
+
+        // 页面加载完成时初始化
+        window.onload = function() {
+            loadWord();
+            loadQuiz();
+            
+            // 为单词输入框绑定回车键提交
+            document.getElementById('word-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    checkWord();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
